@@ -1,14 +1,14 @@
 const express = require('express')
 var cors = require('cors')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 
 const app = express()
 const port = process.env.PORT || 5000
 
 //MidleWare
-// app.use(cors())
-// app.use(express.json());
+app.use(cors())
+app.use(express.json());
 
 
 console.log(process.env.DB_User)
@@ -37,16 +37,31 @@ async function run() {
         // const movies = database.collection("movies");
 
         const servicesCollection = client.db('carDoctor').collection('services');
-
+        const ordersCollection = client.db("carDoctor").collection("orders")
 
 
         app.get('/', (req, res) => {
             res.send('Hello World!')
         })
 
+        //Services-------------------------------------------
         app.get("/services", async (req, res) => {
             const cursor = servicesCollection.find();
             const result = await cursor.toArray();
+            res.send(result)
+        })
+        app.get("/services/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await servicesCollection.findOne(query);
+            res.send(result);
+        })
+
+        //Orders---------------------------------
+        app.post("/orders", async (req, res) => {
+
+            const order = req.body;
+            const result = await ordersCollection.insertOne(order);
             res.send(result)
         })
 
