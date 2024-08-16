@@ -48,7 +48,7 @@ async function run() {
         app.get("/services", async (req, res) => {
             const cursor = servicesCollection.find();
             const result = await cursor.toArray();
-            res.send(result)
+            res.send(result);
         })
         app.get("/services/:id", async (req, res) => {
             const id = req.params.id;
@@ -58,12 +58,44 @@ async function run() {
         })
 
         //Orders---------------------------------
+        app.get("/orders", async (req, res) => {
+
+            console.log(req.query)
+            let query = {};
+            if (req.query?.email) {
+                query = {
+                    email: req.query.email,
+                }
+            }
+
+            const cursor = ordersCollection.find(query);
+            const result = await cursor.toArray()
+
+            res.send(result)
+        })
         app.post("/orders", async (req, res) => {
 
             const order = req.body;
             const result = await ordersCollection.insertOne(order);
             res.send(result)
         })
+        app.delete("/orders/:id", async (req, res) => {
+            console.log(req.params)
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await ordersCollection.deleteOne(query);
+            res.send(result)
+        })
+
+
+
+
+
+
+
+
+
+
 
         app.listen(port, () => {
             console.log(`Example app listening on port ${port}`)
