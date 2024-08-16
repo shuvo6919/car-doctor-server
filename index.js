@@ -2,6 +2,7 @@ const express = require('express')
 var cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
+var jwt = require('jsonwebtoken');
 
 const app = express()
 const port = process.env.PORT || 5000
@@ -44,6 +45,23 @@ async function run() {
             res.send('Hello World!')
         })
 
+        //Authentication--------------------
+
+        app.post("/jwt", async (req, res) => {
+            console.log(req.body.userEmail);
+
+            const userEmail = req.body.userEmail
+            const token = jwt.sign({
+                data: userEmail
+            }, 'secret', { expiresIn: '1h' });
+
+            res.send(token)
+
+        })
+
+
+
+
         //Services-------------------------------------------
         app.get("/services", async (req, res) => {
             const cursor = servicesCollection.find();
@@ -60,7 +78,6 @@ async function run() {
         //Orders---------------------------------
         app.get("/orders", async (req, res) => {
 
-            console.log(req.query)
             let query = {};
             if (req.query?.email) {
                 query = {
@@ -80,7 +97,6 @@ async function run() {
             res.send(result)
         })
         app.delete("/orders/:id", async (req, res) => {
-            console.log(req.params)
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await ordersCollection.deleteOne(query);
