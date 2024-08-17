@@ -1,18 +1,52 @@
 const express = require('express')
 var cors = require('cors')
+var cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
-var jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
 const app = express()
 const port = process.env.PORT || 5000
 
 //MidleWare
-app.use(cors())
+app.use(cors({
+    origin: ["http://localhost:5173"],
+    // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+
+}))
 app.use(express.json());
+app.use(cookieParser())
 
 
-console.log(process.env.DB_User)
+//Self made midleware-----------------------
+const logger = async (req, res, next) => {
+    console.log("Called the midle wRE");
+    next();
+}
+
+const verifyToken = async (req, res, next) => {
+    console.log(req.cookies.token);
+    const token = req.cookies.token;
+
+    if (!token) {
+        return res.status(401).send({ message: "Not Authorized" })
+    }
+    jwt.verify(token, process.env.Access_Token_Secret, (err, decoded) => {
+        //Error
+        if (err) {
+            console.log(err);
+            return res.status(401).send({ message: "UNAUTHORIZED" })
+        }
+
+        //Decoding
+        console.log("Decoded token==", decoded);
+        req.user = decoded
+        console.log(req.user.data)
+
+    });
+    next();
+}
 
 const uri = `mongodb+srv://${process.env.DB_User}:${process.env.DB_Password}@cluster0.j7egbu3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -48,13 +82,21 @@ async function run() {
         //Authentication--------------------
 
         app.post("/jwt", async (req, res) => {
-            console.log(req.body.userEmail);
-
             const userEmail = req.body.userEmail
+
             const token = jwt.sign({
                 data: userEmail
-            }, 'secret', { expiresIn: '1h' });
+            }, process.env.Access_Token_Secret, { expiresIn: '1h' });
 
+
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: false,
+                // sameSite: 'none',
+
+            })
+
+            // res.send({ success: true })
             res.send(token)
 
         })
@@ -76,7 +118,13 @@ async function run() {
         })
 
         //Orders---------------------------------
-        app.get("/orders", async (req, res) => {
+        app.get("/orders", verifyToken, async (req, res) => {
+
+            console.log('Cookiesssss: ', req.cookies)
+
+            if (req.query.email !== req.user.data) {
+                return res.status(401).send({ message: "Unauthorized" })
+            }
 
             let query = {};
             if (req.query?.email) {
