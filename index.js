@@ -10,7 +10,7 @@ const port = process.env.PORT || 5000
 
 //MidleWare
 app.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "https://car-doctor-2-1362a.web.app", "https://car-doctor-2-1362a.firebaseapp.com "],
     // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
 
@@ -42,11 +42,20 @@ const verifyToken = async (req, res, next) => {
         //Decoding
         console.log("Decoded token==", decoded);
         req.user = decoded
-        console.log(req.user.data)
+        console.log(req.user.email)
 
     });
     next();
 }
+
+
+
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+};
 
 const uri = `mongodb+srv://${process.env.DB_User}:${process.env.DB_Password}@cluster0.j7egbu3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -62,10 +71,10 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         // const database = client.db("sample_mflix");
@@ -85,19 +94,14 @@ async function run() {
             const userEmail = req.body.userEmail
 
             const token = jwt.sign({
-                data: userEmail
+                email: userEmail
             }, process.env.Access_Token_Secret, { expiresIn: '1h' });
 
 
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: false,
-                // sameSite: 'none',
-
-            })
+            res.cookie('token', token, cookieOptions)
 
             // res.send({ success: true })
-            res.send(token)
+            res.send({ success: true })
 
         })
 
@@ -122,7 +126,7 @@ async function run() {
 
             console.log('Cookiesssss: ', req.cookies)
 
-            if (req.query.email !== req.user.data) {
+            if (req.query.email !== req.user.email) {
                 return res.status(401).send({ message: "Unauthorized" })
             }
 
